@@ -26,19 +26,24 @@ service reserveFundsService {
   rpc ReserveFunds(Events) returns (Response);
 }
 //-------------SERVICE-----------------------------------
-//подтверждение даных по событию учета
-service markJournalService {
-  rpc MarkJournal(Events) returns (Response);
+//подтверждение даных по событию учета (передача в ГК)
+service transferToGLService {
+  rpc transferToGL(LinkedEvents) returns (Response);
 }
 //-------------SERVICE-----------------------------------
 //сторнирование данных по событию учета
 service reversFundsService {
-  rpc ClearEvent(Events) returns (Response);
+  rpc ClearEvent(LinkedEvents) returns (Response);
 }
 //-------------SERVICE-----------------------------------
 //удаление данных по событию учета
 service clearEventService {
-  rpc ClearEvent(Events) returns (Response);
+  rpc ClearEvent(LinkedEvents) returns (Response);
+}
+//-------------SERVICE-----------------------------------
+//предоставление проводок по документу
+service getDocAccountingService {
+  rpc getDocAccounting(DocumentEvents) returns (Transaction);
 }
 //-------------MESSAGE_FOR_SERVICE-----------------------
 //документ (данные для подбора проводок)
@@ -56,8 +61,24 @@ message Response {
 }
 //-------------MESSAGE_FOR_SERVICE-----------------------
 //события учета
+message LinkedEvents {
+    repeated linkedEvent linkedEvents = 1;  //события учета (чаще одно необходимое)
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//события учета
 message Events {
-    repeated event events = 1;  //события учета (чаще одно необходимое)
+  repeated event events = 1;  //события учета (чаще одно необходимое)
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//документ и его события
+message DocumentEvents {
+  types.UUID docGuid = 1;
+  repeated types.UUID eventGuid = 2;  //события учета (если не заполнен то все проводки по документу)
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//события учета
+message Transaction {
+  repeated operation operation = 1;  //события учета (если не заполнен то все проводки по документу)
 }
 //-------------MESSAGE_AS_TYPE---------------------------
 //карточка документа
@@ -93,11 +114,11 @@ message documentHeader {
 //-------------MESSAGE_AS_TYPE---------------------------
 message documentLine {
   types.decimal lEnteredAmount1  = 1; //Сымма введенная 1 в валюте документа
-  types.decimal lAccountedAmount1 = 2; //Сымма учтенная 1 в ркблях
+  types.decimal lAccountedAmount1 = 2; //Сымма учтенная 1 в рублях
   types.decimal lEnteredAmount2  = 3; //Сымма введенная 2 в валюте документа
-  types.decimal lAccountedAmount2 = 4; //Сымма учтенная 2 в ркблях
+  types.decimal lAccountedAmount2 = 4; //Сымма учтенная 2 в рублях
   types.decimal lEnteredAmount3  = 5; //Сымма введенная 3 в валюте документа
-  types.decimal lAccountedAmount3 = 6; //Сымма учтенная 3 в ркблях
+  types.decimal lAccountedAmount3 = 6; //Сымма учтенная 3 в рублях
 
   budgetCodes senderCodes = 7; //аналитика по стороне отправителя
   budgetCodes receiverCodes  = 8; //аналитика по стороне получателя
@@ -135,9 +156,19 @@ message event {
   string tofkCode =4; //код тофк - инициатора события
   string orgCode  =5; //код организации - инициатора события (пока не используется)
   string user  =6; //пользователь - инициатор события
-  types.date eventDate =7;
-  types.date transactionDate = 8;
-  bool  budgetControl = 9;
+  types.date eventDate =7; //дата приминения события (может быть отложена в будущее)
+  types.date transactionDate = 8; //Дата проведения операции
+  bool  budgetControl = 9; //контроль остатков (если есть контролируемые счета)
+}
+//-------------MESSAGE_AS_TYPE---------------------------
+message linkedEvent {
+  types.UUID docGuid  = 1; //гуид документа
+  types.UUID eventGuid  = 2; //гуид события  (ключ идемпотентности)
+  types.UUID linkedEventGuid  = 3; //гуид связного события  (Удаляемого или сторнируемого)
+  string user  =4; //пользователь - инициатор события
+  types.date eventDate =5; //не заполнять для удаления
+  types.date transactionDate = 6; //не заполнять для удаления
+  bool  budgetControl = 7; //контроль остатков (если есть контролируемые счета)
 }
 //-------------MESSAGE_AS_TYPE---------------------------
 message errMessage {
@@ -152,5 +183,57 @@ message errMessage {
   recTypes recordType = 3; // секция лога
   string recordBody =4; //Детальное описание причины отказа (текст)
   string rejectCode =5; //(коды ошибок по номенклвтуре ФК)
+}
+//-------------MESSAGE_AS_TYPE---------------------------
+message operation {
+  types.UUID eventGuid  = 1; //гуид события
+  string eventCode =2;
+  types.date eventDate =3; //дата приминения события
+  types.date transactionDate = 4; //Дата проведения операции
+  enum states{
+    POSTED = 0; //пропостировано (передано в ГК) - окончательная проводка
+    RESERVED = 1; //зарезервировано (не передано в ГК) - предварительная проводка
+  }
+  states operationState =5; //статус операции
+  string operationCode = 6;//код операции
+  string operationName = 7;//Наименование операции
+  types.decimal enteredAmount  = 8; //Сымма введенная 1 в валюте документа
+  types.decimal accountedAmount = 9; //Сымма учтенная 1 в рублях
+  account accDr = 10; //счет по дебету
+  account accCr = 11; //счет по кредиту
+}
+
+//-------------MESSAGE_AS_TYPE---------------------------
+message account { //сегменты счета (на данный момент используется 16 (14-опер учет и 2 альтернативных в бух учтете)
+  string segment1 = 1;
+  string segment2 = 2;
+  string segment3 = 3;
+  string segment4 = 4;
+  string segment5 = 5;
+  string segment6 = 6;
+  string segment7 = 7;
+  string segment8 = 8;
+  string segment9 = 9;
+  string segment10 = 10;
+  string segment11 = 11;
+  string segment12 = 12;
+  string segment13 = 13;
+  string segment14 = 14;
+  string segment15 = 15;
+  string segment16 = 16;
+  string segment17 = 17;
+  string segment18 = 18;
+  string segment19 = 19;
+  string segment20 = 20;
+  string segment21 = 21;
+  string segment22 = 22;
+  string segment23 = 23;
+  string segment24 = 24;
+  string segment25 = 25;
+  string segment26 = 26;
+  string segment27 = 27;
+  string segment28 = 28;
+  string segment29 = 29;
+  string segment30 = 30;
 }
 

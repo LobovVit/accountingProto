@@ -5,10 +5,11 @@ package types;
 import "google/protobuf/timestamp.proto";
 
 enum retState{
-  E = 0; //ERROR
-  W = 1; //WARNING
-  S = 2; //SUCCESS
-  Z = 3; //0 journals created
+  ERROR = 0; //ERROR
+  WARNING = 1; //WARNING
+  SUCCESS = 2; //SUCCESS
+  ZERO = 3; //0 journals created
+  BUSINESS_ERROR = 4; //допустимая ошибка (потребитель решает ошибка или нет)
 }
 
 message UUID {
