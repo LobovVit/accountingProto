@@ -9,7 +9,7 @@ syntax = "proto3";
 //      0,1 раз clearEventService (каждый десятый документ отменяется)
 //      0,3 раза reversFundsService (каждый третий документ сторнируется)
 //      2-3 раза getAccRecordService
-package accServices;
+package accountingServices;
 
 //типы для проекта
 import "types.proto";

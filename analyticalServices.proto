@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+//пакет сервисов работающих с подсистемой учета (запросы данных)
+//показатели назначения - 10-20 обрабатываемых запросов в секунду (таймаут ответа не более 3-5 сек)
+package analyticalServices;
+
+//типы для проекта
+import "types.proto";
+
+//-------------SERVICE-----------------------------------
+//запрос остатков по счетам вертикальный
+service getAccountingRemainsService {
+  rpc getAccountingRemains(AccountingRemainsRequest) returns (AccountingRemains);
+}
+
+
+//-------------SERVICE-----------------------------------
+//запрос остатков по лицевым счетам горизонтальный
+service getPaAccountingRemainsService {
+  rpc getPaAccountingRemains(PaAccountingRemainsRequest) returns (PaAccountingRemains);
+}
+
+//-------------SERVICE-----------------------------------
+//запрос обротов по счетам вертикальный
+service getAccountingTurnoverService {
+  rpc getAccountingRemains(AccountingTurnoverRequest) returns (AccountingTurnover);
+}
+
+
+//-------------SERVICE-----------------------------------
+//запрос обротов по лицевым счетам горизонтальный
+service getPaAccountingTurnoverService {
+  rpc getPaAccountingRemains(PaAccountingTurnoverRequest) returns (PaAccountingTurnover);
+}
+
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//запрос остатков по счетам
+message AccountingRemainsRequest {
+  types.date date = 1; //дата НА(не включительно) котрую рассчитываются остатки
+  bool needDocAttrs = 2; //Признак необходимости отображения данных в разрезе документов
+  modes mode =  3;//Режим формирования
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//запрос остатков по лицевым счетам (горизонтальный)
+message PaAccountingRemainsRequest {
+  types.date date = 1; //дата НА(не включительно) котрую рассчитываются остатки
+  bool needDocAttrs = 2; //Признак необходимости отображения данных в разрезе документов
+  modes mode =  3;//Режим формирования
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//запрос оборотов по счетам
+message AccountingTurnoverRequest {
+  types.date  beginDate =1;//дата, с которой (включительно требуется выполнить расчет
+  types.date  endDate =2;//дата, по которую (включительно) требуется выполнить расчет
+  bool needDocAttrs = 3; //Признак необходимости отображения данных в разрезе документов
+  modes mode =  4;//Режим формирования
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//запрос оборотов по лицевым счетам (горизонтальный)
+message PaAccountingTurnoverRequest {
+  types.date  beginDate =1;//дата, с которой (включительно требуется выполнить расчет
+  types.date  endDate =2;//дата, по которую (включительно) требуется выполнить расчет
+  bool needDocAttrs = 3; //Признак необходимости отображения данных в разрезе документов
+  modes mode =  4;//Режим формирования
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//остатки по счетам
+message AccountingRemains {
+
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//остатки по лицевым счетам
+message PaAccountingRemains {
+
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+//обороты по счетам
+message AccountingTurnover {
+
+}
+//-------------MESSAGE_FOR_SERVICE-----------------------
+///обороты по лицевым счетам
+message PaAccountingTurnover {
+
+}
+//-----------ENUM_AS_TYPE-------------------------------
+enum modes{
+  POSTED  =0; //только проводки  в статусе POSTED-окончательные (перенесенные в ГК)
+  RESERVED=1; //включая проводки в статусе RESERVED-предварительные (не перенесенные в ГК)
+}
